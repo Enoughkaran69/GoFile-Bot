@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 # Replace with your bot token and API ID, API hash from my.telegram.org
 API_ID = "15122558"
 API_HASH = "43042882a789e5c2e8526d2da740b9c1"
-BOT_TOKEN = "6142796859:AAH4TBb7UgDlZxxW_wXIkDMc1d5gRb24MMM"
+BOT_TOKEN = "6142796859:AAHJGvbQBOz1WJr1xGN0C01Y10qp0YjDiX4"
 
 # Initialize the Pyrogram Client
 app = Client("gofile_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
