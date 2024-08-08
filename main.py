@@ -1,144 +1,31 @@
-import os
 import requests
-from dotenv import load_dotenv
-from gofile import uploadFile
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+# Replace with your bot token and API ID, API hash from my.telegram.org
+API_ID = "15122558"
+API_HASH = "43042882a789e5c2e8526d2da740b9c1"
+BOT_TOKEN = "6142796859:AAH4TBb7UgDlZxxW_wXIkDMc1d5gRb24MMM"
 
-load_dotenv()
+# Initialize the Pyrogram Client
+app = Client("gofile_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-Bot = Client(
-    "GoFile-Bot",
-    bot_token=os.environ.get("BOT_TOKEN"),
-    api_id=int(os.environ.get("API_ID")),
-    api_hash=os.environ.get("API_HASH")
-)
+@app.on_message(filters.document)
+async def upload_to_gofile(client, message):
+    # Download the file from Telegram
+    file_path = await message.download()
 
-INSTRUCTIONS = """
-I am a gofile uploader telegram bot. \
-You can upload files to gofile.io with command.
+    # Upload the file to Gofile
+    with open(file_path, 'rb') as file:
+        response = requests.post('https://api.gofile.io/uploadFile', files={'file': file})
 
-With media:
-    Normal:
-        `/upload`
-    With token:
-        `/upload token`
-    With folder id:
-        `/upload token folderid`
+    # Parse the JSON response
+    response_data = response.json()
 
-Using Link:
-    Normal:
-        `/upload url`
-    With token:
-        `/upload url token`
-    With folder id:
-        `/upload url token folderid`
-"""
-
-
-@Bot.on_message(filters.private & filters.command("start"))
-async def start(bot, update):
-    await update.reply_text(
-        text=f"Hello {update.from_user.mention}," + INSTRUCTIONS,
-        disable_web_page_preview=True,
-        quote=True
-    )
-
-
-@Bot.on_message(filters.private & filters.command("upload"))
-async def filter(bot, update):
-
-    message = await update.reply_text(
-        text="`Processing...`",
-        quote=True,
-        disable_web_page_preview=True
-    )
-
-    text = update.text
-   
-
-    if text is not None:
-        text = text.replace("\n", " ")
+    if response_data["status"] == "ok":
+        download_url = response_data["data"]["downloadPage"]
+        await message.reply(f"File uploaded successfully! [Download Here]({download_url})")
     else:
-        text = ""
+        await message.reply("Failed to upload the file to Gofile.")
 
-    url = None
-    token = None
-    folderId = None
-
-    if " " in text:
-        text = text.split(" ", 1)[1]
-        if update.reply_to_message:
-            if " " in text:
-                token, folderId = text.split(" ", 1)
-            else:
-                token = text
-        else:
-            if " " in text:
-                if len(text.split()) > 2:
-                    url, token, folderId = text.split(" ", 2)
-                else:
-                    url, token = text.split()
-            else:
-                url = text
-            if not (url.startswith("http://") or url.startswith("https://")):
-                await message.edit_text("Error :- `url is wrong`")
-                return
-    elif not update.reply_to_message:
-        await message.edit_text("Error :- `downloadable media or url not found`")
-        return
-
-    try:
-
-        await message.edit_text("`Downloading...`")
-        if url:
-            response = requests.get(url)
-            media = response.url.split("/", -1)[-1]
-            with open(media, "wb") as file:
-                file.write(response.content)
-        else:
-            media = await update.reply_to_message.download()
-        await message.edit_text("`Downloaded Successfully`")
-
-        await message.edit_text("`Uploading...`")
-        response = uploadFile(file=media, token=token, folderId=folderId)
-        await message.edit_text("`Uploading Successfully`")
-
-        try:
-            os.remove(file)
-        except Exception as error:
-            print(error)
-
-    except Exception as error:
-        await message.edit_text(f"Error :- `{error}`")
-        return
-
-    text = f"**File Name:** `{response['fileName']}`" + "\n"
-    text += f"**File ID:** `{response['fileId']}`" + "\n"
-    text += f"**Code:** `{response['code']}`" + "\n"
-    text += f"**md5:** `{response['md5']}`" + "\n"
-    text += f"**Download Page:** `{response['downloadPage']}`"
-    link = response['downloadPage']
-    reply_markup = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    text="Open Link", url=link),
-                InlineKeyboardButton(
-                    text="Share Link", url=f"https://telegram.me/share/url?url={link}")
-            ],
-            [
-                InlineKeyboardButton(
-                    text="Feedback", url="https://telegram.me/FayasNoushad")
-            ]
-        ]
-    )
-    await message.edit_text(
-        text=text,
-        reply_markup=reply_markup,
-        disable_web_page_preview=True
-    )
-
-
-Bot.run()
+# Start the bot
+app.run()
