@@ -55,7 +55,14 @@ async def filter(bot, update):
         disable_web_page_preview=True
     )
 
-    text = update.text.replace("\n", " ")
+    text = update.text
+   
+
+    if text is not None:
+        text = text.replace("\n", " ")
+    else:
+        text = ""
+
     url = None
     token = None
     folderId = None
